@@ -4,6 +4,10 @@ using Getri_TokenAuthentication.Models;
 using Getri_TokenAuthentication.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Getri_TokenAuthentication.Controllers
 {
@@ -31,6 +35,38 @@ namespace Getri_TokenAuthentication.Controllers
             var createdUser = authRepository.Register(userToCreate);
 
             return StatusCode(201, new { email = createdUser.Email, fullname = createdUser.FullName });
+        }
+
+        [HttpPost("login")]
+        public IActionResult Login(LoginDTO loginDto)
+        {
+            var userFromRepo = authRepository.Login(loginDto.Email.ToLower());
+            if (userFromRepo == null)
+                return Unauthorized();
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userFromRepo.UserId.ToString()),
+                new Claim(ClaimTypes.Name, userFromRepo.Email)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8
+                .GetBytes(iConfiguration.GetSection("AppSettings:Token").Value));
+
+            //steps for creating token and adding identity
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
+
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = creds
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);  //in-memory
+
+            return Ok(new { token = tokenHandler.WriteToken(token), email = userFromRepo.Email, fullname = userFromRepo.FullName });
         }
     }
 }
