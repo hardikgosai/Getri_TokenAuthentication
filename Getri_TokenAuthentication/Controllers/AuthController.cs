@@ -3,10 +3,14 @@ using Getri_TokenAuthentication.DTOs;
 using Getri_TokenAuthentication.Models;
 using Getri_TokenAuthentication.Repository;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Principal;
 using System.Text;
 
 namespace Getri_TokenAuthentication.Controllers
@@ -67,6 +71,30 @@ namespace Getri_TokenAuthentication.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);  //in-memory
 
             return Ok(new { token = tokenHandler.WriteToken(token), email = userFromRepo.Email, fullname = userFromRepo.FullName });
+        }
+
+        [HttpPost("ValidateToken")]
+        public IActionResult ValidateToken(string authToken)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = GetValidationParameters();
+
+            SecurityToken validatedToken;
+            IPrincipal principal = tokenHandler.ValidateToken(authToken, validationParameters, out validatedToken);
+            return Ok(principal.Identity.IsAuthenticated);
+        }
+
+        private TokenValidationParameters GetValidationParameters()
+        {
+            return new TokenValidationParameters()
+            {
+                ValidateLifetime = true, // Because there is no expiration in the generated token
+                ValidateAudience = false, // Because there is no audiance in the generated token
+                ValidateIssuer = false,   // Because there is no issuer in the generated token
+                ValidIssuer = "Sample",
+                ValidAudience = "Sample",
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(iConfiguration.GetSection("AppSettings:Token").Value)) // The same key as the one that generate the token
+            };
         }
     }
 }
