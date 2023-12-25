@@ -90,9 +90,7 @@ namespace Getri_TokenAuthentication.Controllers
             {
                 ValidateLifetime = true, // Because there is no expiration in the generated token
                 ValidateAudience = false, // Because there is no audiance in the generated token
-                ValidateIssuer = false,   // Because there is no issuer in the generated token
-                ValidIssuer = "Sample",
-                ValidAudience = "Sample",
+                ValidateIssuer = false,   // Because there is no issuer in the generated token               
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(iConfiguration.GetSection("AppSettings:Token").Value)) // The same key as the one that generate the token
             };
         }
